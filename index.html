@@ -25,28 +25,41 @@
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--body);-webkit-font-smoothing:antialiased;min-height:100%}
-.wrap{max-width:780px;margin:0 auto;padding:28px 16px 48px;display:flex;flex-direction:column;gap:22px}
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(1100px 520px at 50% -8%,rgba(255,178,30,.11),transparent 62%),radial-gradient(900px 600px at 105% 110%,rgba(94,194,255,.07),transparent 60%)}
+.wrap{position:relative;max-width:780px;margin:0 auto;padding:28px 16px 48px;display:flex;flex-direction:column;gap:22px}
 
 .top{display:flex;align-items:center;gap:14px;font:600 15px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .top .brand{color:var(--accent)}
 .top .clock{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--ink);font-size:20px;letter-spacing:.06em}
 button{font:inherit;cursor:pointer}
+.live{display:inline-flex;align-items:center;gap:8px;font:600 13px/1 var(--display);letter-spacing:.16em;color:var(--muted)}
+.live i{width:8px;height:8px;border-radius:50%;background:#46d37a;box-shadow:0 0 10px #46d37a;animation:blink 1.6s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 .ghost{white-space:nowrap;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:6px 12px;font:500 13px/1 var(--body);letter-spacing:0;text-transform:none}
 .ghost:hover{color:var(--ink);border-color:var(--muted)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 
-.board{background:var(--board);border:1px solid var(--line);border-radius:10px;padding:clamp(14px,3vw,26px);display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 30px 60px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03)}
+.board{position:relative;background:radial-gradient(circle at 12px 12px,#2e333d 2.5px,transparent 3.5px),radial-gradient(circle at calc(100% - 12px) 12px,#2e333d 2.5px,transparent 3.5px),radial-gradient(circle at 12px calc(100% - 12px),#2e333d 2.5px,transparent 3.5px),radial-gradient(circle at calc(100% - 12px) calc(100% - 12px),#2e333d 2.5px,transparent 3.5px),linear-gradient(180deg,#181b22,#111318);border:1px solid var(--line);border-radius:12px;padding:clamp(14px,3vw,26px);display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 30px 60px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03)}
+.board::before{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.05),transparent 38%);pointer-events:none}
+.board::after{content:"";position:absolute;left:12%;right:12%;bottom:-1px;height:1px;background:linear-gradient(90deg,transparent,rgba(255,178,30,.55),transparent)}
 .flap{--c:clamp(15px,calc((100vw - 84px) / 16 - 3px),40px);display:grid;grid-template-columns:repeat(var(--n),var(--c));gap:3px}
 .flap[hidden]{display:none}
 .cell{width:var(--c);height:calc(var(--c) * 1.38);border-radius:3px;position:relative;display:grid;place-items:center;overflow:hidden;
   background:linear-gradient(180deg,var(--cell-hi) 0%,var(--cell) 49.5%,#181b22 50.5%,var(--cell) 100%);
   box-shadow:inset 0 -1px 0 rgba(0,0,0,.55),0 1px 0 rgba(0,0,0,.4)}
-.cell::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.65)}
-.cell span{font:600 calc(var(--c) * 1.02)/1 var(--display);color:var(--ink);display:block;transform-origin:50% 50%}
+.cell{perspective:220px}
+.cell::before{content:"";position:absolute;left:0;right:0;top:0;height:50%;background:linear-gradient(180deg,var(--cell-hi),var(--cell));transform-origin:50% 100%;opacity:0;z-index:2;border-radius:3px 3px 0 0}
+.cell.flip::before{animation:flapdown .1s ease-in}
+@keyframes flapdown{0%{transform:rotateX(0);opacity:1}100%{transform:rotateX(-90deg);opacity:1}}
+.cell::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.65);z-index:3}
+.cell span{font:600 calc(var(--c) * 1.02)/1 var(--display);color:var(--ink);display:block;transform-origin:50% 50%;text-shadow:0 0 10px rgba(244,239,228,.18)}
 .cell.flip span{animation:flip .07s linear}
 @keyframes flip{0%{transform:scaleY(1)}50%{transform:scaleY(.1)}100%{transform:scaleY(1)}}
 
 .cover{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:8px 0}
+.cover .flight{font:600 13px/1 var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--accent)}
+.cover .primary{animation:pulse 2.2s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,178,30,.5)}100%{box-shadow:0 0 0 18px rgba(255,178,30,0)}}
 .cover p{margin:0;font:500 clamp(22px,4vw,30px)/1.2 var(--display);letter-spacing:.02em}
 .primary{background:var(--accent);color:#1a1204;border:0;border-radius:999px;padding:14px 28px;font:700 19px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;box-shadow:0 10px 30px -10px rgba(255,178,30,.55)}
 .primary:hover{filter:brightness(1.06)}
@@ -64,6 +77,9 @@ button{font:inherit;cursor:pointer}
 .deps li+li{border-top:1px solid var(--line)}
 .dep{width:100%;background:none;border:0;color:var(--ink);text-align:left;transition:background .15s}
 .dep:hover{background:#181c23}
+.dep:hover .code{transform:translateX(3px)}
+.dep .code{transition:transform .15s}
+.dep[aria-pressed="false"] .status{animation:blink 2.6s ease-in-out infinite}
 .dep[aria-pressed="true"]{background:#1d1a12;box-shadow:inset 3px 0 0 var(--accent)}
 .dep .code{font:700 20px/1 var(--display);letter-spacing:.06em;color:var(--accent)}
 .dep .flap{--c:var(--rc)}
@@ -73,7 +89,13 @@ button{font:inherit;cursor:pointer}
 .hint{margin:0;font-size:14px;color:var(--muted)}
 
 /* Bordkarte */
-.ticket{display:grid;grid-template-columns:1fr 190px;background:var(--ink);color:#16181d;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -25px rgba(0,0,0,.9)}
+.ticket.print{animation:printout .75s cubic-bezier(.2,.7,.2,1) both}
+@keyframes printout{from{clip-path:inset(0 0 100% 0);transform:translateY(-12px)}to{clip-path:inset(0 0 0 0);transform:none}}
+.stamp{position:absolute;top:46%;left:52%;z-index:4;border:4px solid #c8361f;color:#c8361f;font:700 clamp(30px,6vw,46px)/1 var(--display);letter-spacing:.14em;padding:8px 18px 6px;border-radius:8px;text-transform:uppercase;opacity:0;pointer-events:none;transform:translate(-50%,-50%) rotate(-14deg);mix-blend-mode:multiply}
+.stamp.on{animation:stamp .5s cubic-bezier(.3,1.5,.5,1) both}
+@keyframes stamp{0%{opacity:0;transform:translate(-50%,-50%) rotate(-14deg) scale(2.6)}100%{opacity:.88;transform:translate(-50%,-50%) rotate(-14deg) scale(1)}}
+#gift.booked .intro,#gift.booked .deps-wrap,#gift.booked .hint,#gift.booked .t-actions{display:none}
+.ticket{position:relative;display:grid;grid-template-columns:1fr 190px;background:var(--ink);color:#16181d;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -25px rgba(0,0,0,.9)}
 .t-main{padding:22px 24px;display:flex;flex-direction:column;gap:16px}
 .t-stub{padding:22px 18px;border-left:2px dashed #b9b2a3;display:flex;flex-direction:column;gap:12px;background:#ebe5d8;position:relative}
 .t-stub::before,.t-stub::after{content:"";position:absolute;left:-11px;width:20px;height:20px;border-radius:50%;background:var(--bg)}
@@ -124,7 +146,8 @@ footer{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px/1.3 var(--display)
   .t-plan div{grid-template-columns:1fr;gap:2px}
 }
 @media (prefers-reduced-motion:reduce){
-  .cell.flip span,.reveal{animation:none}
+  .cell.flip span,.cell.flip::before,.reveal,.ticket.print,.cover .primary,.live i,.dep .status{animation:none !important}
+  .stamp.on{animation:none;opacity:.88}
 }
 </style>
 </head>
@@ -133,7 +156,7 @@ footer{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px/1.3 var(--display)
   <header class="top">
     <span class="brand">Abflug · Departures</span>
     <span class="clock" id="clock">--:--</span>
-    <button class="ghost" id="mute" type="button" aria-pressed="false">Ton aus</button>
+    <span class="live" aria-hidden="true"><i></i>Live</span>
   </header>
 
   <section class="board" aria-live="polite" aria-label="Anzeigetafel">
@@ -143,6 +166,7 @@ footer{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px/1.3 var(--display)
   </section>
 
   <div class="cover" id="cover">
+    <span class="flight">Flug HB 100 · Gate 1 · Boarding</span>
     <p>Für dich, zum Geburtstag.<br><span style="color:var(--muted);font-size:.75em">Von Maik</span></p>
     <button class="primary" id="open" type="button">Geschenk öffnen</button>
   </div>
@@ -156,6 +180,7 @@ footer{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px/1.3 var(--display)
     <p class="hint">Tipp auf ein Ziel, um deine Bordkarte zu sehen.</p>
 
     <article class="ticket" id="ticket" hidden aria-live="polite">
+      <div class="stamp" id="stamp" aria-hidden="true">Gebucht</div>
       <div class="t-main">
         <span class="t-label">Bordkarte · Boarding Pass</span>
         <div class="t-route"><span class="iata">HOME</span><span class="arrow" aria-hidden="true"></span><span class="iata" id="tCode">LIS</span></div>
@@ -220,7 +245,7 @@ const $ = id => document.getElementById(id);
 const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
 
 /* ---------- Ton ---------- */
-let ac = null, muted = false, lastClick = 0, clickBuf = null;
+let ac = null; const muted = false; let lastClick = 0, clickBuf = null;
 function initAudio(){
   if (ac) { try{ ac.resume(); }catch(e){} return; }
   try{
@@ -253,11 +278,7 @@ function gong(){
     o.connect(g); g.connect(ac.destination); o.start(t0+t); o.stop(t0+t+1.7);
   });
 }
-$("mute").addEventListener("click", () => {
-  muted = !muted;
-  $("mute").setAttribute("aria-pressed", String(muted));
-  $("mute").textContent = muted ? "Ton an" : "Ton aus";
-});
+
 
 /* ---------- Fallblatt ---------- */
 function makeFlap(el, n){
@@ -448,6 +469,7 @@ let playing = false, chosen = -1;
 async function play(){
   if (playing) return; playing = true;
   $("cover").hidden = true; $("gift").hidden = true; $("final").hidden = true; $("ticket").hidden = true;
+  $("gift").classList.remove("booked"); $("stamp").classList.remove("on");
   DESTS.forEach(d => { d.btn.setAttribute("aria-pressed","false"); d.btn.querySelector(".status").textContent = "Wählbar"; });
   gong();
   await wait(500);
@@ -465,20 +487,19 @@ async function play(){
 function select(i){
   chosen = i;
   const d = DESTS[i];
-  DESTS.forEach((x, j) => x.btn.setAttribute("aria-pressed", String(j === i)));
+  DESTS.forEach((x, j) => { x.btn.setAttribute("aria-pressed", String(j === i)); x.btn.querySelector(".status").textContent = j === i ? "Gewählt" : "Wählbar"; });
   $("tCode").textContent = d.code; $("tCode2").textContent = d.code;
   $("tCity").textContent = d.city; $("tVia").textContent = d.via;
   $("tFood").textContent = d.food; $("tCulture").textContent = d.culture; $("tHigh").textContent = d.high;
   const t = $("ticket");
-  t.hidden = false; t.classList.remove("reveal"); void t.offsetWidth; t.classList.add("reveal");
+  t.hidden = false; t.classList.remove("print"); void t.offsetWidth; t.classList.add("print"); click();
   t.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "nearest"});
 }
 
 async function book(){
   const d = DESTS[chosen]; if (!d) return;
   initAudio();
-  $("ticket").hidden = true; $("gift").hidden = true;
-  $("final").hidden = false;
+  $("final").hidden = true;
   $("finalText").innerHTML = chosen === 4
     ? "Du hast den <b>Joker</b> gezogen. Ich suche das Ziel aus und verrate es dir erst, wenn wir losfahren. Freitag geht’s los, Sonntag sind wir zurück.<br><span class=\"sig\">Maik</span>"
     : `<b>${d.city}</b> also. Freitag geht’s los, Sonntag sind wir zurück. Du suchst das Wochenende aus, um den Rest kümmere ich mich.<br><span class="sig">Maik</span>`;
@@ -489,13 +510,21 @@ async function book(){
   l3.hidden = false; await setFlap(l3, "FR BIS SO", {center:true});
   await flyPlane();
   cannons(260);
+  $("gift").classList.add("booked");
+  $("ticket").scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "center"});
+  await wait(650);
+  $("stamp").classList.remove("on"); void $("stamp").offsetWidth; $("stamp").classList.add("on");
+  setTimeout(pop, reduce ? 0 : 160);
+  await wait(700);
+  $("final").hidden = false; $("final").classList.remove("reveal"); void $("final").offsetWidth; $("final").classList.add("reveal");
 }
 
 $("open").addEventListener("click", () => { initAudio(); play(); });
 $("book").addEventListener("click", book);
-$("close").addEventListener("click", () => { $("ticket").hidden = true; DESTS.forEach(x => x.btn.setAttribute("aria-pressed","false")); });
+$("close").addEventListener("click", () => { $("ticket").hidden = true; DESTS.forEach(x => { x.btn.setAttribute("aria-pressed","false"); x.btn.querySelector(".status").textContent = "Wählbar"; }); });
 $("again").addEventListener("click", async () => {
-  $("final").hidden = true; $("gift").hidden = false;
+  $("final").hidden = true; $("gift").hidden = false; $("gift").classList.remove("booked"); $("stamp").classList.remove("on");
+  window.scrollTo({top:0, behavior: reduce ? "auto" : "smooth"});
   await Promise.all([setFlap(l1, "WOHIN", {center:true}), setFlap(l2, "DARF ES GEHEN?", {center:true})]);
 });
 $("replay").addEventListener("click", () => { initAudio(); rest(); play(); });
