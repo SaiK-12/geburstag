@@ -302,27 +302,116 @@ function setFlap(el, text, opts = {}){
   })));
 }
 
-/* ---------- Konfetti ---------- */
+/* ---------- Flugzeug + Konfetti ---------- */
 const cv = $("confetti"), cx = cv.getContext("2d");
-let parts = [], raf = 0;
+let parts = [], raf = 0, plane = null;
 function sizeCanvas(){ const r = window.devicePixelRatio || 1; cv.width = innerWidth * r; cv.height = innerHeight * r; cx.setTransform(r,0,0,r,0,0); }
 sizeCanvas(); addEventListener("resize", sizeCanvas);
-function confetti(n){
-  if (reduce) return;
-  const cols = ["#ffb21e","#f4efe4","#ff6b6b","#5ec2ff","#b48cff","#7ee0a1"];
-  for (let i = 0; i < n; i++){
-    parts.push({x: innerWidth/2 + (Math.random()-.5)*innerWidth*.5, y: -20 - Math.random()*innerHeight*.3,
-      vx:(Math.random()-.5)*4, vy: 2 + Math.random()*4, w: 6 + Math.random()*6, h: 8 + Math.random()*10,
-      r: Math.random()*Math.PI, vr:(Math.random()-.5)*.3, c: cols[i % cols.length], life: 0});
-  }
-  if (!raf) raf = requestAnimationFrame(step);
+function kick(){ if (!raf) raf = requestAnimationFrame(step); }
+
+function whoosh(dur){
+  if (!ac || muted) return;
+  const len = Math.floor(ac.sampleRate * dur), buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random()*2-1;
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const f = ac.createBiquadFilter(); f.type = "bandpass"; f.Q.value = 0.8;
+  const t = ac.currentTime;
+  f.frequency.setValueAtTime(250, t); f.frequency.exponentialRampToValueAtTime(1400, t + dur*0.5); f.frequency.exponentialRampToValueAtTime(220, t + dur);
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + dur*0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f); f.connect(g); g.connect(ac.destination); src.start(t); src.stop(t + dur);
 }
-function step(){
+function pop(){
+  if (!ac || muted) return;
+  const t = ac.currentTime, o = ac.createOscillator(), g = ac.createGain();
+  o.type = "triangle"; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(50, t + 0.18);
+  g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + 0.22);
+  click();
+}
+
+/* Flugzeug von oben nach unten, leicht geschwungen, mit Kondensstreifen */
+function planePos(p){
+  const W = innerWidth, H = innerHeight;
+  return { x: W*0.5 + Math.sin(p*Math.PI*1.25 - 0.4)*W*0.2, y: -160 + (H + 320)*p };
+}
+function flyPlane(){
+  return new Promise(res => {
+    if (reduce){ res(); return; }
+    const dur = 1900;
+    plane = { t0: performance.now(), dur, done: res, trail: [] };
+    whoosh(dur/1000);
+    kick();
+  });
+}
+function drawPlane(x, y, ang, S){
+  cx.save(); cx.translate(x, y); cx.rotate(ang);
+  cx.shadowColor = "rgba(0,0,0,.45)"; cx.shadowBlur = 18; cx.shadowOffsetY = 8;
+  cx.fillStyle = "#f4efe4";
+  const wing = (m) => { cx.beginPath(); cx.moveTo(S*0.12, m*S*0.05); cx.lineTo(-S*0.12, m*S*0.5); cx.lineTo(-S*0.23, m*S*0.5); cx.lineTo(-S*0.1, m*S*0.05); cx.closePath(); cx.fill(); };
+  const tail = (m) => { cx.beginPath(); cx.moveTo(-S*0.34, m*S*0.03); cx.lineTo(-S*0.47, m*S*0.19); cx.lineTo(-S*0.53, m*S*0.19); cx.lineTo(-S*0.47, 0); cx.closePath(); cx.fill(); };
+  wing(1); wing(-1); tail(1); tail(-1);
+  cx.beginPath(); cx.ellipse(0, 0, S*0.5, S*0.075, 0, 0, Math.PI*2); cx.fill();
+  cx.shadowColor = "transparent";
+  /* Triebwerke und Akzentstreifen */
+  cx.fillStyle = "#c9c2b4";
+  [[-0.24],[0.24]].forEach(([m]) => { cx.beginPath(); cx.ellipse(S*0.02, m*S, S*0.07, S*0.025, 0, 0, Math.PI*2); cx.fill(); });
+  cx.fillStyle = "#ffb21e";
+  cx.fillRect(-S*0.5, -S*0.012, S*0.62, S*0.024);
+  cx.beginPath(); cx.ellipse(S*0.42, 0, S*0.06, S*0.045, 0, 0, Math.PI*2); cx.fillStyle = "#13161c"; cx.fill();
+  cx.restore();
+}
+
+/* Konfetti-Kanonen links und rechts */
+function cannons(n){
+  if (reduce) return;
+  const W = innerWidth, H = innerHeight, k = Math.sqrt(H/800);
+  const cols = ["#ffb21e","#f4efe4","#ff6b6b","#5ec2ff","#b48cff","#7ee0a1"];
+  const burst = (side, count) => {
+    for (let i = 0; i < count; i++){
+      const a = (50 + Math.random()*28) * Math.PI/180, sp = (13 + Math.random()*11) * k;
+      parts.push({ x: side < 0 ? -10 : W + 10, y: H*0.88, vx: (side < 0 ? 1 : -1) * Math.cos(a) * sp, vy: -Math.sin(a) * sp,
+        w: 6 + Math.random()*6, h: 8 + Math.random()*10, r: Math.random()*Math.PI, vr: (Math.random()-.5)*.35,
+        c: cols[(i + (side < 0 ? 0 : 3)) % cols.length], life: 0, g: 0.32, drag: 0.985 });
+    }
+  };
+  pop(); burst(-1, n/2); burst(1, n/2); kick();
+  setTimeout(() => { pop(); burst(-1, n/4); burst(1, n/4); kick(); }, 320);
+}
+
+function step(now){
   cx.clearRect(0,0,innerWidth,innerHeight);
-  parts.forEach(p => { p.vy += .05; p.vx *= .995; p.x += p.vx + Math.sin(p.life/12); p.y += p.vy; p.r += p.vr; p.life++;
-    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.life/8))); cx.restore(); });
-  parts = parts.filter(p => p.y < innerHeight + 40);
-  raf = parts.length ? requestAnimationFrame(step) : 0;
+  if (plane){
+    const p = Math.min(1, (performance.now() - plane.t0) / plane.dur);
+    const e = p < .5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2)/2;
+    const pos = planePos(e), prev = planePos(Math.max(0, e - 0.01));
+    const ang = Math.atan2(pos.y - prev.y, pos.x - prev.x) || Math.PI/2;
+    plane.trail.push({ x: pos.x, y: pos.y, ang });
+    if (plane.trail.length > 70) plane.trail.shift();
+    const S = Math.max(120, Math.min(260, Math.min(innerWidth, innerHeight) * 0.32));
+    /* zwei Kondensstreifen hinter den Triebwerken */
+    [-0.24, 0.24].forEach(off => {
+      for (let i = 1; i < plane.trail.length; i++){
+        const a = plane.trail[i-1], b = plane.trail[i];
+        const ox = (pt) => pt.x + Math.cos(pt.ang + Math.PI/2) * off * S - Math.cos(pt.ang) * S*0.1;
+        const oy = (pt) => pt.y + Math.sin(pt.ang + Math.PI/2) * off * S - Math.sin(pt.ang) * S*0.1;
+        cx.strokeStyle = `rgba(244,239,228,${(i / plane.trail.length) * 0.55})`;
+        cx.lineWidth = 3 + (1 - i / plane.trail.length) * 7;
+        cx.lineCap = "butt";
+        cx.beginPath(); cx.moveTo(ox(a), oy(a)); cx.lineTo(ox(b), oy(b)); cx.stroke();
+      }
+    });
+    drawPlane(pos.x, pos.y, ang, S);
+    if (p >= 1){ const done = plane.done; plane = null; done(); }
+  }
+  parts.forEach(p => {
+    p.vy += p.g; p.vx *= p.drag; p.vy *= p.drag;
+    p.x += p.vx + Math.sin(p.life/10) * 0.6; p.y += p.vy; p.r += p.vr; p.life++;
+    cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r); cx.fillStyle = p.c;
+    cx.fillRect(-p.w/2, -p.h/2, p.w, p.h * Math.abs(Math.cos(p.life/8))); cx.restore();
+  });
+  parts = parts.filter(p => p.y < innerHeight + 60 && p.life < 900);
+  raf = (parts.length || plane) ? requestAnimationFrame(step) : 0;
   if (!raf) cx.clearRect(0,0,innerWidth,innerHeight);
 }
 
@@ -365,8 +454,9 @@ async function play(){
   await setFlap(l1, "ALLES GUTE", {center:true});
   await setFlap(l2, "ZUM GEBURTSTAG", {center:true});
   l3.hidden = false; await setFlap(l3, NAME || ("VON " + FROM), {center:true});
-  confetti(160);
-  await wait(1400);
+  await flyPlane();
+  cannons(200);
+  await wait(1100);
   $("gift").hidden = false; $("gift").classList.remove("reveal"); void $("gift").offsetWidth; $("gift").classList.add("reveal");
   for (const d of DESTS){ setFlap(d.flap, d.name); await wait(260); }
   playing = false;
@@ -397,7 +487,8 @@ async function book(){
   await setFlap(l1, "GUTE REISE", {center:true});
   await setFlap(l2, d.line2, {center:true});
   l3.hidden = false; await setFlap(l3, "FR BIS SO", {center:true});
-  confetti(220);
+  await flyPlane();
+  cannons(260);
 }
 
 $("open").addEventListener("click", () => { initAudio(); play(); });
