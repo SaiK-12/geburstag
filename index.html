@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Abflug zum Geburtstag</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Abflugtafel am Flughafen: dunkle Tafel, warmweiße Fallblätter, Bernstein für Status-Infos */
+  --bg:#0b0d11;
+  --board:#13161c;
+  --cell:#1d2129;
+  --cell-hi:#272c36;
+  --ink:#f4efe4;
+  --muted:#8d95a3;
+  --accent:#ffb21e;
+  --line:#272c35;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.55 var(--body);-webkit-font-smoothing:antialiased;min-height:100%}
+.wrap{max-width:780px;margin:0 auto;padding:28px 16px 48px;display:flex;flex-direction:column;gap:22px}
+
+.top{display:flex;align-items:center;gap:14px;font:600 15px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.top .brand{color:var(--accent)}
+.top .clock{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--ink);font-size:20px;letter-spacing:.06em}
+button{font:inherit;cursor:pointer}
+.ghost{white-space:nowrap;background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:6px 12px;font:500 13px/1 var(--body);letter-spacing:0;text-transform:none}
+.ghost:hover{color:var(--ink);border-color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+.board{background:var(--board);border:1px solid var(--line);border-radius:10px;padding:clamp(14px,3vw,26px);display:flex;flex-direction:column;align-items:center;gap:10px;box-shadow:0 30px 60px -30px rgba(0,0,0,.8), inset 0 1px 0 rgba(255,255,255,.03)}
+.flap{--c:clamp(15px,calc((100vw - 84px) / 16 - 3px),40px);display:grid;grid-template-columns:repeat(var(--n),var(--c));gap:3px}
+.flap[hidden]{display:none}
+.cell{width:var(--c);height:calc(var(--c) * 1.38);border-radius:3px;position:relative;display:grid;place-items:center;overflow:hidden;
+  background:linear-gradient(180deg,var(--cell-hi) 0%,var(--cell) 49.5%,#181b22 50.5%,var(--cell) 100%);
+  box-shadow:inset 0 -1px 0 rgba(0,0,0,.55),0 1px 0 rgba(0,0,0,.4)}
+.cell::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.65)}
+.cell span{font:600 calc(var(--c) * 1.02)/1 var(--display);color:var(--ink);display:block;transform-origin:50% 50%}
+.cell.flip span{animation:flip .07s linear}
+@keyframes flip{0%{transform:scaleY(1)}50%{transform:scaleY(.1)}100%{transform:scaleY(1)}}
+
+.cover{display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;padding:8px 0}
+.cover p{margin:0;font:500 clamp(22px,4vw,30px)/1.2 var(--display);letter-spacing:.02em}
+.primary{background:var(--accent);color:#1a1204;border:0;border-radius:999px;padding:14px 28px;font:700 19px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;box-shadow:0 10px 30px -10px rgba(255,178,30,.55)}
+.primary:hover{filter:brightness(1.06)}
+.primary:active{transform:translateY(1px)}
+
+#gift{display:flex;flex-direction:column;gap:18px}
+#gift[hidden],#final[hidden],.cover[hidden],.ticket[hidden]{display:none}
+.intro{margin:0;max-width:62ch;font-size:18px;color:var(--ink)}
+.intro b{color:var(--accent);font-weight:600}
+
+.deps-wrap{--rc:clamp(15px,3.3vw,25px);--fw:calc(9 * var(--rc) + 24px);background:var(--board);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.deps-head,.dep{display:grid;grid-template-columns:3.4rem var(--fw) 1fr 6.5rem;align-items:center;gap:14px;padding:10px 16px}
+.deps-head{font:600 13px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);background:#101318}
+.deps{list-style:none;margin:0;padding:0}
+.deps li+li{border-top:1px solid var(--line)}
+.dep{width:100%;background:none;border:0;color:var(--ink);text-align:left;transition:background .15s}
+.dep:hover{background:#181c23}
+.dep[aria-pressed="true"]{background:#1d1a12;box-shadow:inset 3px 0 0 var(--accent)}
+.dep .code{font:700 20px/1 var(--display);letter-spacing:.06em;color:var(--accent)}
+.dep .flap{--c:var(--rc)}
+.dep .via{font:600 14px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.dep .status{justify-self:end;font:600 13px/1 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--accent);border:1px solid rgba(255,178,30,.4);border-radius:999px;padding:5px 9px}
+.dep[aria-pressed="true"] .status{background:var(--accent);color:#1a1204}
+.hint{margin:0;font-size:14px;color:var(--muted)}
+
+/* Bordkarte */
+.ticket{display:grid;grid-template-columns:1fr 190px;background:var(--ink);color:#16181d;border-radius:14px;overflow:hidden;box-shadow:0 30px 60px -25px rgba(0,0,0,.9)}
+.t-main{padding:22px 24px;display:flex;flex-direction:column;gap:16px}
+.t-stub{padding:22px 18px;border-left:2px dashed #b9b2a3;display:flex;flex-direction:column;gap:12px;background:#ebe5d8;position:relative}
+.t-stub::before,.t-stub::after{content:"";position:absolute;left:-11px;width:20px;height:20px;border-radius:50%;background:var(--bg)}
+.t-stub::before{top:-10px}.t-stub::after{bottom:-10px}
+.t-label{font:600 12px/1 var(--display);letter-spacing:.18em;text-transform:uppercase;color:#7b7466}
+.t-route{display:flex;align-items:center;gap:14px}
+.t-route .iata{font:700 clamp(40px,8vw,58px)/.9 var(--display);letter-spacing:.02em}
+.t-route .arrow{flex:1;height:2px;background:repeating-linear-gradient(90deg,#16181d 0 6px,transparent 6px 11px);position:relative;min-width:30px}
+.t-route .arrow::after{content:"";position:absolute;right:-2px;top:-5px;border:6px solid transparent;border-left:9px solid #16181d}
+.t-city{display:flex;justify-content:space-between;font:500 14px/1.2 var(--body);color:#4d4a43;margin-top:-8px}
+.t-meta{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:6px 28px}
+.t-meta div{display:flex;flex-direction:column;gap:5px}
+.t-meta strong{font:700 19px/1 var(--display);letter-spacing:.04em;text-transform:uppercase}
+.t-plan{display:grid;gap:10px;margin:0;padding:14px 0 0;border-top:1px solid #d6cfc0}
+.t-plan div{display:grid;grid-template-columns:6.2rem 1fr;gap:10px}
+.t-plan dt{font:600 13px/1.5 var(--display);letter-spacing:.14em;text-transform:uppercase;color:#7b7466}
+.t-plan dd{margin:0;font-size:16px;line-height:1.45}
+.t-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.t-actions .primary{box-shadow:none}
+.t-actions .back{background:none;border:0;color:#4d4a43;text-decoration:underline;text-underline-offset:3px;font-size:15px;padding:8px 4px}
+.t-stub .iata{font:700 34px/1 var(--display)}
+.t-stub .barcode{margin-top:auto;height:54px;background:repeating-linear-gradient(90deg,#16181d 0 2px,transparent 2px 4px,#16181d 4px 5px,transparent 5px 8px,#16181d 8px 11px,transparent 11px 12px)}
+
+#final{display:flex;flex-direction:column;gap:16px;align-items:flex-start}
+.final-text{margin:0;max-width:60ch;font-size:19px}
+.final-text b{color:var(--accent)}
+.sig{display:inline-block;margin-top:10px;font:600 22px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+
+footer{display:flex;flex-wrap:wrap;gap:6px 18px;font:500 13px/1.3 var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);border-top:1px solid var(--line);padding-top:14px}
+
+#confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10}
+.reveal{animation:rise .6s ease-out both}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+
+@media (max-width:560px){
+  .deps-head,.dep{grid-template-columns:2.9rem var(--fw) 1fr;gap:8px;padding:10px 12px}
+  .dep .code{font-size:17px}
+  .top{gap:10px}
+  .top .brand{font-size:13px}
+  .deps-head span:last-child,.dep .status{display:none}
+  .dep .via{justify-self:end}
+  .ticket{grid-template-columns:1fr}
+  .t-stub{border-left:0;border-top:2px dashed #b9b2a3}
+  .t-stub::before,.t-stub::after{display:none}
+  .t-stub .barcode{margin-top:6px;height:40px}
+  .t-meta{grid-template-columns:repeat(3,auto);gap:6px 18px}
+  .t-plan div{grid-template-columns:1fr;gap:2px}
+}
+@media (prefers-reduced-motion:reduce){
+  .cell.flip span,.reveal{animation:none}
+}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <span class="brand">Abflug · Departures</span>
+    <span class="clock" id="clock">--:--</span>
+    <button class="ghost" id="mute" type="button" aria-pressed="false">Ton aus</button>
+  </header>
+
+  <section class="board" aria-live="polite" aria-label="Anzeigetafel">
+    <div class="flap" id="l1"></div>
+    <div class="flap" id="l2"></div>
+    <div class="flap" id="l3" hidden></div>
+  </section>
+
+  <div class="cover" id="cover">
+    <p>Für dich, zum Geburtstag.<br><span style="color:var(--muted);font-size:.75em">Von Maik</span></p>
+    <button class="primary" id="open" type="button">Geschenk öffnen</button>
+  </div>
+
+  <section id="gift" hidden>
+    <p class="intro">Dein Geschenk ist <b>ein Wochenende weg</b>: Freitag los, Sonntag zurück. Gutes Essen entdecken, ein Museum, die schönsten Ecken der Stadt. Wohin es geht, entscheidest <b>du</b>.</p>
+    <div class="deps-wrap">
+      <div class="deps-head"><span>Code</span><span>Ziel</span><span>Anreise</span><span>Status</span></div>
+      <ol class="deps" id="deps"></ol>
+    </div>
+    <p class="hint">Tipp auf ein Ziel, um deine Bordkarte zu sehen.</p>
+
+    <article class="ticket" id="ticket" hidden aria-live="polite">
+      <div class="t-main">
+        <span class="t-label">Bordkarte · Boarding Pass</span>
+        <div class="t-route"><span class="iata">HOME</span><span class="arrow" aria-hidden="true"></span><span class="iata" id="tCode">LIS</span></div>
+        <div class="t-city"><span>Zuhause</span><span id="tCity">Lissabon</span></div>
+        <div class="t-meta">
+          <div><span class="t-label">Hin</span><strong>Freitag</strong></div>
+          <div><span class="t-label">Zurück</span><strong>Sonntag</strong></div>
+          <div><span class="t-label">Anreise</span><strong id="tVia">Flug</strong></div>
+        </div>
+        <dl class="t-plan">
+          <div><dt>Essen</dt><dd id="tFood"></dd></div>
+          <div><dt>Kultur</dt><dd id="tCulture"></dd></div>
+          <div><dt>Highlight</dt><dd id="tHigh"></dd></div>
+        </dl>
+        <div class="t-actions">
+          <button class="primary" id="book" type="button">Das wird’s!</button>
+          <button class="back" id="close" type="button">Andere Ziele ansehen</button>
+        </div>
+      </div>
+      <aside class="t-stub" aria-hidden="true">
+        <span class="t-label">Passagierin</span>
+        <strong id="tName" style="font:700 19px/1.05 var(--display);text-transform:uppercase;overflow-wrap:anywhere">Geburtstagskind</strong>
+        <span class="t-label">Sitz</span>
+        <strong style="font:700 20px/1 var(--display);text-transform:uppercase">Neben Maik</strong>
+        <span class="iata" id="tCode2">LIS</span>
+        <div class="barcode"></div>
+      </aside>
+    </article>
+  </section>
+
+  <section id="final" hidden>
+    <p class="final-text" id="finalText"></p>
+    <div class="row">
+      <button class="primary" id="again" type="button">Doch anders wählen</button>
+      <button class="ghost" id="replay" type="button">Von vorn abspielen</button>
+    </div>
+  </section>
+
+  <footer>
+    <span>Hin: Freitag</span><span>Zurück: Sonntag</span><span>Gültig für ein Wochenende nach Wahl</span>
+  </footer>
+</main>
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script>
+/* Name hier eintragen, dann erscheint er auf der Tafel und der Bordkarte. Leer lassen = ohne Namen. */
+const NAME = "";
+/* Absender: erscheint als "VON ..." auf der Tafel. */
+const FROM = "MAIK";
+
+const DESTS = [
+  {code:"AMS", name:"AMSTERDAM", city:"Amsterdam", via:"Auto", food:"Stroopwafels frisch vom Markt und Bitterballen in einem braunen Café", culture:"Rijksmuseum mit der Nachtwache oder das Van Gogh Museum", high:"Abends mit dem Boot durch die beleuchteten Grachten", line2:"NACH AMSTERDAM"},
+  {code:"LIS", name:"LISSABON", city:"Lissabon", via:"Flug", food:"Pastéis de Nata in Belém, frischer Fisch in der Alfama", culture:"Hieronymuskloster und Torre de Belém", high:"Mit der Tram 28 hinauf zu den Aussichtspunkten über der Stadt", line2:"NACH LISSABON"},
+  {code:"PRG", name:"PRAG", city:"Prag", via:"Flug", food:"Svíčková (Rinderbraten mit Rahmsoße) und ein frisch gezapftes Pilsner", culture:"Prager Burg und die astronomische Uhr am Altstädter Rathaus", high:"Die Karlsbrücke früh am Morgen, bevor die Massen kommen", line2:"NACH PRAG"},
+  {code:"WAW", name:"WARSCHAU", city:"Warschau", via:"Flug", food:"Pierogi in einer klassischen Milchbar", culture:"Museum des Warschauer Aufstands oder das POLIN-Museum", high:"Die wiederaufgebaute Altstadt und der Blick vom Kulturpalast", line2:"NACH WARSCHAU"},
+  {code:"???", name:"JOKER", city:"Überraschung", via:"Geheim", food:"Wird vor Ort verraten", culture:"Wird vor Ort verraten", high:"Du lässt dich überraschen und ich suche das Ziel aus", line2:"ZIEL GEHEIM"}
+];
+
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const CHARS = " ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789.-!?";
+const $ = id => document.getElementById(id);
+const wait = ms => new Promise(r => setTimeout(r, reduce ? 0 : ms));
+
+/* ---------- Ton ---------- */
+let ac = null, muted = false, lastClick = 0, clickBuf = null;
+function initAudio(){
+  if (ac) { try{ ac.resume(); }catch(e){} return; }
+  try{
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    const len = Math.floor(ac.sampleRate * 0.018);
+    clickBuf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = clickBuf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/len, 5);
+  }catch(e){ ac = null; }
+}
+function click(){
+  if (!ac || muted) return;
+  const now = ac.currentTime;
+  if (now - lastClick < 0.028) return;
+  lastClick = now;
+  const src = ac.createBufferSource(); src.buffer = clickBuf;
+  const f = ac.createBiquadFilter(); f.type = "bandpass"; f.frequency.value = 1800 + Math.random()*1800; f.Q.value = 1.2;
+  const g = ac.createGain(); g.gain.value = 0.35;
+  src.connect(f); f.connect(g); g.connect(ac.destination); src.start();
+}
+function gong(){
+  if (!ac || muted) return;
+  const t0 = ac.currentTime + 0.05;
+  [[523.25,0],[659.25,0.32],[783.99,0.64]].forEach(([fr,t]) => {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = "sine"; o.frequency.value = fr;
+    g.gain.setValueAtTime(0, t0+t);
+    g.gain.linearRampToValueAtTime(0.16, t0+t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0008, t0+t+1.6);
+    o.connect(g); g.connect(ac.destination); o.start(t0+t); o.stop(t0+t+1.7);
+  });
+}
+$("mute").addEventListener("click", () => {
+  muted = !muted;
+  $("mute").setAttribute("aria-pressed", String(muted));
+  $("mute").textContent = muted ? "Ton an" : "Ton aus";
+});
+
+/* ---------- Fallblatt ---------- */
+function makeFlap(el, n){
+  el.style.setProperty("--n", n);
+  el.innerHTML = "";
+  el._cells = [];
+  for (let i = 0; i < n; i++){
+    const c = document.createElement("div"); c.className = "cell";
+    const s = document.createElement("span"); s.textContent = " ";
+    c.appendChild(s); el.appendChild(c); el._cells.push(s);
+  }
+  return el;
+}
+function fit(text, n, center){
+  let t = text.toUpperCase().slice(0, n);
+  if (center) t = " ".repeat(Math.floor((n - t.length)/2)) + t;
+  return t.padEnd(n, " ");
+}
+function flick(s){
+  const c = s.parentNode;
+  c.classList.remove("flip"); void c.offsetWidth; c.classList.add("flip");
+  click();
+}
+function setFlap(el, text, opts = {}){
+  const cells = el._cells, t = fit(text, cells.length, opts.center);
+  if (opts.instant || reduce){
+    cells.forEach((s,i) => s.textContent = t[i] === " " ? " " : t[i]);
+    return Promise.resolve();
+  }
+  return Promise.all(cells.map((s, i) => new Promise(res => {
+    const target = t[i] === " " ? " " : t[i];
+    if (s.textContent === target){ res(); return; }
+    const steps = 5 + Math.floor(Math.random()*7);
+    let k = 0;
+    const tick = () => {
+      if (k >= steps){ s.textContent = target; flick(s); res(); return; }
+      const ch = CHARS[Math.floor(Math.random()*CHARS.length)];
+      s.textContent = ch === " " ? " " : ch;
+      flick(s); k++; setTimeout(tick, 48);
+    };
+    setTimeout(tick, i * 32);
+  })));
+}
+
+/* ---------- Konfetti ---------- */
+const cv = $("confetti"), cx = cv.getContext("2d");
+let parts = [], raf = 0;
+function sizeCanvas(){ const r = window.devicePixelRatio || 1; cv.width = innerWidth * r; cv.height = innerHeight * r; cx.setTransform(r,0,0,r,0,0); }
+sizeCanvas(); addEventListener("resize", sizeCanvas);
+function confetti(n){
+  if (reduce) return;
+  const cols = ["#ffb21e","#f4efe4","#ff6b6b","#5ec2ff","#b48cff","#7ee0a1"];
+  for (let i = 0; i < n; i++){
+    parts.push({x: innerWidth/2 + (Math.random()-.5)*innerWidth*.5, y: -20 - Math.random()*innerHeight*.3,
+      vx:(Math.random()-.5)*4, vy: 2 + Math.random()*4, w: 6 + Math.random()*6, h: 8 + Math.random()*10,
+      r: Math.random()*Math.PI, vr:(Math.random()-.5)*.3, c: cols[i % cols.length], life: 0});
+  }
+  if (!raf) raf = requestAnimationFrame(step);
+}
+function step(){
+  cx.clearRect(0,0,innerWidth,innerHeight);
+  parts.forEach(p => { p.vy += .05; p.vx *= .995; p.x += p.vx + Math.sin(p.life/12); p.y += p.vy; p.r += p.vr; p.life++;
+    cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.life/8))); cx.restore(); });
+  parts = parts.filter(p => p.y < innerHeight + 40);
+  raf = parts.length ? requestAnimationFrame(step) : 0;
+  if (!raf) cx.clearRect(0,0,innerWidth,innerHeight);
+}
+
+/* ---------- Aufbau ---------- */
+const l1 = makeFlap($("l1"), 16), l2 = makeFlap($("l2"), 16), l3 = makeFlap($("l3"), 16);
+const deps = $("deps");
+DESTS.forEach((d, i) => {
+  const li = document.createElement("li");
+  li.innerHTML = `<button class="dep" type="button" aria-pressed="false" data-i="${i}">
+    <span class="code">${d.code}</span><span class="flap"></span><span class="via">${d.via}</span><span class="status">Wählbar</span></button>`;
+  deps.appendChild(li);
+  d.flap = makeFlap(li.querySelector(".flap"), 9);
+  d.btn = li.querySelector(".dep");
+  d.btn.setAttribute("aria-label", `${d.city}, Anreise ${d.via}`);
+  d.btn.addEventListener("click", () => select(i));
+});
+if (NAME) $("tName").textContent = NAME;
+
+function rest(){
+  setFlap(l1, "BITTE", {center:true, instant:true});
+  setFlap(l2, "EINSTEIGEN", {center:true, instant:true});
+  l3.hidden = true;
+  DESTS.forEach(d => setFlap(d.flap, "", {instant:true}));
+}
+rest();
+
+function tickClock(){
+  const d = new Date();
+  $("clock").textContent = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+}
+tickClock(); setInterval(tickClock, 15000);
+
+let playing = false, chosen = -1;
+async function play(){
+  if (playing) return; playing = true;
+  $("cover").hidden = true; $("gift").hidden = true; $("final").hidden = true; $("ticket").hidden = true;
+  DESTS.forEach(d => { d.btn.setAttribute("aria-pressed","false"); d.btn.querySelector(".status").textContent = "Wählbar"; });
+  gong();
+  await wait(500);
+  await setFlap(l1, "ALLES GUTE", {center:true});
+  await setFlap(l2, "ZUM GEBURTSTAG", {center:true});
+  l3.hidden = false; await setFlap(l3, NAME || ("VON " + FROM), {center:true});
+  confetti(160);
+  await wait(1400);
+  $("gift").hidden = false; $("gift").classList.remove("reveal"); void $("gift").offsetWidth; $("gift").classList.add("reveal");
+  for (const d of DESTS){ setFlap(d.flap, d.name); await wait(260); }
+  playing = false;
+}
+
+function select(i){
+  chosen = i;
+  const d = DESTS[i];
+  DESTS.forEach((x, j) => x.btn.setAttribute("aria-pressed", String(j === i)));
+  $("tCode").textContent = d.code; $("tCode2").textContent = d.code;
+  $("tCity").textContent = d.city; $("tVia").textContent = d.via;
+  $("tFood").textContent = d.food; $("tCulture").textContent = d.culture; $("tHigh").textContent = d.high;
+  const t = $("ticket");
+  t.hidden = false; t.classList.remove("reveal"); void t.offsetWidth; t.classList.add("reveal");
+  t.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "nearest"});
+}
+
+async function book(){
+  const d = DESTS[chosen]; if (!d) return;
+  initAudio();
+  $("ticket").hidden = true; $("gift").hidden = true;
+  $("final").hidden = false;
+  $("finalText").innerHTML = chosen === 4
+    ? "Du hast den <b>Joker</b> gezogen. Ich suche das Ziel aus und verrate es dir erst, wenn wir losfahren. Freitag geht’s los, Sonntag sind wir zurück.<br><span class=\"sig\">Maik</span>"
+    : `<b>${d.city}</b> also. Freitag geht’s los, Sonntag sind wir zurück. Du suchst das Wochenende aus, um den Rest kümmere ich mich.<br><span class="sig">Maik</span>`;
+  window.scrollTo({top:0, behavior: reduce ? "auto" : "smooth"});
+  gong();
+  await setFlap(l1, "GUTE REISE", {center:true});
+  await setFlap(l2, d.line2, {center:true});
+  l3.hidden = false; await setFlap(l3, "FR BIS SO", {center:true});
+  confetti(220);
+}
+
+$("open").addEventListener("click", () => { initAudio(); play(); });
+$("book").addEventListener("click", book);
+$("close").addEventListener("click", () => { $("ticket").hidden = true; DESTS.forEach(x => x.btn.setAttribute("aria-pressed","false")); });
+$("again").addEventListener("click", async () => {
+  $("final").hidden = true; $("gift").hidden = false;
+  await Promise.all([setFlap(l1, "WOHIN", {center:true}), setFlap(l2, "DARF ES GEHEN?", {center:true})]);
+});
+$("replay").addEventListener("click", () => { initAudio(); rest(); play(); });
+</script>
+</body>
+</html>
